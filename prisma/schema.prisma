@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ユーザー情報を管理するテーブル
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique // ログインに使用
+  name      String?  // ユーザー名（任意）
+  password  String   // ハッシュ化されたパスワード
+  memories  Memory[] // このユーザーが投稿した思い出のリスト
+  createdAt DateTime @default(now())
+}
+
+// 思い出を保存するテーブル
+model Memory {
+  id          Int          @id @default(autoincrement())
+  comment     String       // 一言コメント
+  imageUrl    String       // 写真のURL
+  latitude    Float        // 緯度
+  longitude   Float        // 経度
+  takenAt     DateTime?    // 写真が撮影された日時（任意）
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Userとのリレーション (どのユーザーの投稿か)
+  author      User         @relation(fields: [authorId], references: [id])
+  authorId    Int
+
+  // Tagとのリレーション (多対多)
+  tags        MemoryTag[]
+}
+
+// タグを管理するテーブル
+model Tag {
+  id       Int         @id @default(autoincrement())
+  name     String      @unique // タグ名 (例: "旅行", "カフェ")
+  memories MemoryTag[]
+}
+
+// MemoryとTagの中間テーブル (多対多を実現するため)
+model MemoryTag {
+  // どのMemoryとどのTagを結びつけるか
+  memory   Memory @relation(fields: [memoryId], references: [id])
+  memoryId Int
+  tag      Tag    @relation(fields: [tagId], references: [id])
+  tagId    Int
+
+  // 複合主キー (同じ思い出に同じタグが複数つかないようにする制約)
+  @@id([memoryId, tagId])
+}
