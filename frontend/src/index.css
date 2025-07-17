@@ -1,0 +1,21 @@
+/* 以前追加したスタイル */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.content-container {
+  flex-grow: 1; /* 残りの高さを全て埋める */
+  position: relative;
+  /* ★★★ この一行が重要！ ★★★ */
+  /* flexアイテムの中身が自身の高さを超えないようにするおまじない */
+  min-height: 0;
+}

@@ -1,15 +1,18 @@
-import express from 'express';
+import express, { Request, Response } from 'express'; // ★ Request, Response をインポート
+import cors from 'cors';
 import memoriesRouter from '../api/memories/memories.routes';
-import usersRouter from '../api/users/users.routes'; // ★ 追加
+import usersRouter from '../api/users/users.routes';
 
 const app = express();
+
+app.use(cors());
 app.use(express.json());
 
-// APIルーターを登録
 app.use('/api', memoriesRouter);
-app.use('/api/users', usersRouter); // ★ 追加
+app.use('/api/users', usersRouter);
 
-app.get('/', (req, res) => {
+// ★ reqとresに型を指定
+app.get('/', (req: Request, res: Response) => {
   res.send('Server is running!');
 });
 
