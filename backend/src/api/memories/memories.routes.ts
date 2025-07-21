@@ -1,9 +1,31 @@
-import { Router, Request, Response } from 'express'; // ★ Request, Response をインポート
+import { Router, Request, Response } from 'express';
 import { getAllMemories, createMemory } from './memories.service';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import multer from 'multer';
+import path from 'path'; // ★ pathモジュールをインポート
+import fs from 'fs';     // ★ fsモジュールをインポート
 
-const upload = multer({ storage: multer.memoryStorage() });
+// ★★★ multerの保存設定をここから変更 ★★★
+const storage = multer.diskStorage({
+  // ファイルの保存先を指定
+  destination: function (req, file, cb) {
+    // backend/public/uploads というディレクトリを指定
+    const uploadPath = path.join(process.cwd(), 'backend/public/uploads');
+    // ディレクトリが存在しない場合は作成する
+    fs.mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
+  },
+  // ファイル名を指定
+  filename: function (req, file, cb) {
+    // ファイル名が重複しないように、現在時刻とランダムな数値を付け加える
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
+// ★★★ ここまでがmulterの変更点 ★★★
+
 
 const router = Router();
 
@@ -22,7 +44,6 @@ router.get('/memories', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// ★ reqとresに型を指定
 router.post(
   '/memories',
   authMiddleware,
@@ -37,10 +58,14 @@ router.post(
     try {
       const { comment, latitude, longitude, tags } = req.body;
       const authorId = req.user.userId;
-      const imageUrl = 'https://example.com/placeholder.jpg';
+
+      // ★★★ ここが修正点 ★★★
+      // 保存されたファイル名から、アクセス可能なURLを組み立てる
+      const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
       const newMemory = await createMemory({
         comment,
-        imageUrl,
+        imageUrl, // ★ 組み立てたURLをサービスに渡す
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
         authorId,

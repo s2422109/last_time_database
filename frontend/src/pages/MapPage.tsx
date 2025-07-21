@@ -3,49 +3,41 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import axios from 'axios';
 import 'leaflet/dist/leaflet.css';
 
-// アイコン関連のimportと設定は変更なし
+// --- アイコン設定 ---
 import L from 'leaflet';
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+// ローカルのassetsフォルダからカスタム画像をインポート
+import customPinUrl from '../assets/kkrn_icon_pin_4.png'; 
 
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
+// インポートした画像URLを使って、新しいカスタムアイコンを定義
+const customIcon = new L.Icon({
+  iconUrl: customPinUrl,
+  iconSize: [35, 41],   // アイコンのサイズ [幅, 高さ]
+  iconAnchor: [12, 41],  // アイコンの「先端」が来る位置
+  popupAnchor: [1, -34], // ポップアップが開く位置
 });
+// --- ここまでがアイコン設定 ---
 
 
-// Memoryの型定義は変更なし
 interface Memory {
+  imageUrl: string | undefined;
   id: number;
   comment: string;
   latitude: number;
   longitude: number;
-  author: {
-    name: string | null;
-  };
-  tags: {
-    tag: {
-      name: string;
-    };
-  }[];
+  author: { name: string | null };
+  tags: { tag: { name: string } }[];
 }
-function MapPage() {
-  console.log("【1】MapPageコンポーネントがレンダリングされました。");
 
+function MapPage() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [loading, setLoading] = useState(true);
   const [inputValue, setInputValue] = useState('');
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
 
   useEffect(() => {
-    console.log("【2】useEffectが実行されました。検索キーワード:", activeSearchTerm);
-
     const fetchMemories = async () => {
       const token = localStorage.getItem('token');
       if (!token) {
-        console.log("【3-A】トークンが見つからないため、処理を中断します。");
         setLoading(false);
         return;
       }
@@ -57,23 +49,19 @@ function MapPage() {
           .map(tag => tag.startsWith('#') ? tag.substring(1) : tag)
           .filter(tag => tag.length > 0);
         const formattedSearchTerm = cleanedTags.join(',');
-        
+
         const url = formattedSearchTerm
           ? `http://localhost:3001/api/memories?tags=${encodeURIComponent(formattedSearchTerm)}`
           : 'http://localhost:3001/api/memories';
         
-        console.log("【3-B】APIリクエストを送信します。URL:", url);
         const response = await axios.get(url, {
           headers: { Authorization: `Bearer ${token}` },
         });
         
-        console.log("【4】APIからデータを受信しました。データ:", response.data);
         setMemories(response.data);
-
       } catch (error) {
-        console.error("【5】データの取得中にエラーが発生しました:", error);
+        console.error("データの取得に失敗しました:", error);
       } finally {
-        console.log("【6】データ取得処理が完了しました。");
         setLoading(false);
       }
     };
@@ -87,11 +75,8 @@ function MapPage() {
   };
 
   if (loading) {
-    console.log("【7】ローディング画面を表示します。");
     return <div>地図を読み込んでいます...</div>;
   }
-
-  console.log("【8】地図とマーカーの描画を開始します。思い出の件数:", memories.length);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -118,23 +103,30 @@ function MapPage() {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
-          {memories.map((memory) => {
-            console.log(`【9】マーカーを描画します: ${memory.comment}`);
-            return (
-              <Marker key={memory.id} position={[memory.latitude, memory.longitude]}>
-                <Popup>
+          {memories.map((memory) => (
+            // ★ 全てのマーカーに、作成したカスタムアイコンを適用します
+            <Marker key={memory.id} position={[memory.latitude, memory.longitude]} icon={customIcon}>
+              <Popup>
+                {/* ★★★ ここからが修正点 ★★★ */}
+                <div>
+                  {/* 投稿された画像を表示するimgタグを追加 */}
+                  <img 
+                    src={memory.imageUrl} 
+                    alt={memory.comment} 
+                    style={{ width: '100%', height: 'auto', borderRadius: '4px', marginBottom: '8px' }} 
+                  />
+                  
+                  <p><strong>コメント:</strong> {memory.comment}</p>
+                  <p><strong>投稿者:</strong> {memory.author.name || '名無し'}</p>
                   <div>
-                    <p><strong>コメント:</strong> {memory.comment}</p>
-                    <p><strong>投稿者:</strong> {memory.author.name || '名無し'}</p>
-                    <div>
-                      <strong>タグ:</strong>
-                      {memory.tags.map(t => `#${t.tag.name}`).join(' ')}
-                    </div>
+                    <strong>タグ:</strong>
+                    {memory.tags.map(t => `#${t.tag.name}`).join(' ')}
                   </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+                </div>
+                {/* ★★★ ここまでが修正点 ★★★ */}
+              </Popup>
+            </Marker>
+          ))}
         </MapContainer>
       </div>
     </div>
