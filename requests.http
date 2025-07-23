@@ -16,10 +16,9 @@ Content-Type: application/json
   "email": "test@example.com",
   "password": "password123"
 }
-
-# 思い出を新規投稿する
+### 
 POST http://localhost:3001/api/memories
-Authorization: Bearer yJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc1MjEyMDc1OCwiZXhwIjoxNzUyMTI0MzU4fQ.4j78r3IycaZAwaRxlHrRqTW8A1cRhZCU5BbAwChXHSI
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc1MjEyMjEzOSwiZXhwIjoxNzUyMTI1NzM5fQ.umzzM5bxwqOsNnva0T4zjokWI-E2AVgzvrDnfiJrV1A
 Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -36,8 +35,41 @@ Content-Disposition: form-data; name="longitude"
 139.767125
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
 Content-Disposition: form-data; name="image"; filename="test.jpg"
-Content-Type: jpeg
+Content-Type: image/jpg
 
 <1612680D-610D-4BC9-AB21-80F693BBCC1E.jpeg>
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### タグ付きで思い出を新規投稿する
+POST http://localhost:3001/api/memories
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImlhdCI6MTc1MjEyMzA4NywiZXhwIjoxNzUyMTI2Njg3fQ.X8w5ZGgfnrHXaNvB4QcJ6SAomPrW1JG30JAVe8hn20k
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="comment"
+
+カフェ巡りの思い出
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="latitude"
+
+35.658581
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="longitude"
+
+139.745433
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+# ↓↓↓ この部分が追加したタグ情報です ↓↓↓
+Content-Disposition: form-data; name="tags"
+
+["カフェ", "東京タワー", "散歩"]
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="test.jpg"
+Content-Type: image/jpeg
+
+<1612680D-610D-4BC9-AB21-80F693BBCC1E.jpeg>
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### タグを指定して思い出を取得する
+GET http://localhost:3001/api/memories?tag=カフェ

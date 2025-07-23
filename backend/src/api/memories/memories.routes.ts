@@ -1,55 +1,79 @@
-// backend/src/api/memories/memories.routes.ts
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { getAllMemories, createMemory } from './memories.service';
-import { authMiddleware } from '../../middleware/auth.middleware'; // ★ 認証ミドルウェアをインポート
-import multer from 'multer'; // ★ multerをインポート
+import { authMiddleware } from '../../middleware/auth.middleware';
+import multer from 'multer';
+import path from 'path'; // ★ pathモジュールをインポート
+import fs from 'fs';     // ★ fsモジュールをインポート
 
-// multerのセットアップ（今回はファイルをメモリ上に一時保存する設定）
-const upload = multer({ storage: multer.memoryStorage() });
+// ★★★ multerの保存設定をここから変更 ★★★
+const storage = multer.diskStorage({
+  // ファイルの保存先を指定
+  destination: function (req, file, cb) {
+    // backend/public/uploads というディレクトリを指定
+    const uploadPath = path.join(process.cwd(), 'backend/public/uploads');
+    // ディレクトリが存在しない場合は作成する
+    fs.mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
+  },
+  // ファイル名を指定
+  filename: function (req, file, cb) {
+    // ファイル名が重複しないように、現在時刻とランダムな数値を付け加える
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
+// ★★★ ここまでがmulterの変更点 ★★★
+
 
 const router = Router();
 
-router.get('/memories', async (req, res) => {
+// ★ reqとresに型を指定
+router.get('/memories', authMiddleware, async (req: Request, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'User not authenticated' });
+  }
   try {
-    const memories = await getAllMemories();
+    const tagsQuery = req.query.tags as string | undefined;
+    const authorId = req.user.userId;
+    const memories = await getAllMemories(authorId, tagsQuery);
     res.json(memories);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch memories' });
   }
 });
 
-// ★ POST /api/memories を追加
 router.post(
   '/memories',
-  authMiddleware, // 1. 最初に認証ミドルウェアを実行
-  upload.single('image'), // 2. 次に画像ファイル1枚を処理
-  async (req, res) => {
-    // 認証ミドルウェアが成功すれば、req.userにユーザー情報が入っている
+  authMiddleware,
+  upload.single('image'),
+  async (req: Request, res: Response) => {
     if (!req.user) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
-    // multerが成功すれば、req.fileにファイル情報が入っている
     if (!req.file) {
       return res.status(400).json({ error: 'Image file is required' });
     }
-
     try {
-      const { comment, latitude, longitude } = req.body;
+      const { comment, latitude, longitude, tags } = req.body;
       const authorId = req.user.userId;
 
-      // TODO: 本来は、req.fileのバッファをCloudinaryなどにアップロードし、そのURLをimageUrlに入れる
-      const imageUrl = 'https://example.com/placeholder.jpg'; // 今回は仮のURL
+      // ★★★ ここが修正点 ★★★
+      // 保存されたファイル名から、アクセス可能なURLを組み立てる
+      const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
 
       const newMemory = await createMemory({
         comment,
-        imageUrl,
-        latitude: parseFloat(latitude), // 送られてきたデータは文字列なので数値に変換
+        imageUrl, // ★ 組み立てたURLをサービスに渡す
+        latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
         authorId,
+        tags: tags ? JSON.parse(tags) : [],
       });
-
       res.status(201).json(newMemory);
     } catch (error) {
+      console.error(error);
       res.status(500).json({ error: 'Failed to create memory' });
     }
   }

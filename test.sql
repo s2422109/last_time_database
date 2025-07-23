@@ -1,1 +1,1 @@
-SELECT * FROM "User";
+TRUNCATE "Memory", "MemoryTag" RESTART IDENTITY;
