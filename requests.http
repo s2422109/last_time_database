@@ -73,3 +73,167 @@ Content-Type: image/jpeg
 
 ### タグを指定して思い出を取得する
 GET http://localhost:3001/api/memories?tag=カフェ
+
+### PHP版 ユーザー登録API
+POST http://localhost:8000/api/users/register.php
+Content-Type: application/json
+
+{
+  "email": "test-php@example.com",
+  "name": "PHPユーザー",
+  "password": "password123"
+}
+### 登録したユーザーでログインする
+POST http://localhost:8000/api/users/login.php
+Content-Type: application/json
+
+{
+  "email": "test-php@example.com",
+  "password": "password123"
+}
+### 
+### PHP版 思い出投稿API (最終修正版)
+POST http://localhost:8000/api/memories/create.php
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NTMyMzg5MDIsImV4cCI6MTc1MzI0MjUwMiwiZGF0YSI6eyJ1c2VySWQiOjV9fQ.jUE48mLUnzsL_V2Ftz2PD4GD3wlWA42Ge4ofbtB0Gi4
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="comment"
+
+PHPからの最終テスト！
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="latitude"
+
+35.681236
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="longitude"
+
+139.767125
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="tags"
+
+["PHP", "最終テスト"]
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="test.jpg"
+Content-Type: image/jpeg
+
+<1612680D-610D-4BC9-AB21-80F693BBCC1E.jpeg>
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### PHP版 ファイルアップロード単体テスト
+POST http://localhost:8000/upload_test.php
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="test.jpeg"
+Content-Type: image/jpeg
+
+< 1612680D-610D-4BC9-AB21-80F693BBCC1E.jpeg>
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### 1. ログインしてトークンを取得
+# @name phpLogin
+POST http://localhost:8000/api/users/login.php
+Content-Type: application/json
+
+{
+  "email": "test-php@example.com",
+  "password": "password123"
+}
+
+############################################################
+
+### 2. 思い出を投稿する
+# @name phpCreateMemory
+POST http://localhost:8000/api/memories/create.php
+Authorization: Bearer {{phpLogin.response.body.token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="comment"
+
+手動テストによる投稿
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="test.jpg"
+Content-Type: image/jpeg
+
+# [重要] この行を、あなたのPC上にある実際の画像ファイルの「絶対パス」に書き換えてください。
+</Users/masahidesekiguchi/lecture/last_time_database/1612680D-610D-4BC9-AB21-80F693BBCC1E.jpeg>
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+############################################################
+
+### 3. 投稿した画像を表示する (手動入力)
+# @name phpGetImageManual
+GET http://localhost:8000/api/memories/image.php?file=<ここにステップ2で取得したファイル名を貼り付け>
+
+Content-Disposition: form-data; name="image"; filename="test.jpeg"
+Content-Type: image/jpeg
+
+# [重要] この行を、あなたのPC上にある実際の画像ファイルの絶対パスに書き換えてください
+<IMG_0484.jpeg>
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+############################################################
+
+### 3. 投稿した画像を表示する
+# @name phpGetImage
+GET http://localhost:8000/api/memories/image.php?file={{phpCreateMemory.response.body.filename}}
+
+
+### 0. ユーザーを新規登録する (最初に一度だけ実行)
+# @name phpRegister
+POST http://localhost:8000/api/users/register.php
+Content-Type: application/json
+
+{
+  "email": "test-php@example.com",
+  "name": "PHPユーザー",
+  "password": "password123"
+}
+
+### 1. ログインしてトークンを取得
+# @name phpLogin
+POST http://localhost:8000/api/users/login.php
+Content-Type: application/json
+
+{
+  "email": "test-php@example.com",
+  "password": "password123"
+}
+
+############################################################
+
+### 2. 思い出を投稿する
+# @name phpCreateMemory
+POST http://localhost:8000/api/memories/create.php
+# [重要] 下の行の <...> の部分を、ステップ1で取得したトークンに手で貼り付けてください
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NTMzNDAxMDcsImV4cCI6MTc1MzM0MzcwNywiZGF0YSI6eyJ1c2VySWQiOjV9fQ.AZDMGDtsPevyZXA9fe4Qpo0OQEfMizV_O0iR1wcLcRE
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="comment"
+
+完全手動テストによる投稿
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="test.jpg"
+Content-Type: image/jpeg
+
+# [重要] この行を、あなたのPC上にある実際の画像ファイルの「絶対パス」に書き換えてください。
+</Users/masahidesekiguchi/lecture/last_time_database/1612680D-610D-4BC9-AB21-80F693BBCC1E.jpeg>
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+############################################################
+
+### 3. 投稿した画像を表示する (完全手動入力)
+# @name phpGetImageManual
+GET http://localhost:8000/api/memories/image.php?file=image-1753340386-6881d9e2623cd.jpg
+

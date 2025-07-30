@@ -2,26 +2,21 @@ import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import axios from 'axios';
 import 'leaflet/dist/leaflet.css';
-
-// --- アイコン設定 ---
 import L from 'leaflet';
 // ローカルのassetsフォルダからカスタム画像をインポート
 import customPinUrl from '../assets/kkrn_icon_pin_4.png'; 
 
-// インポートした画像URLを使って、新しいカスタムアイコンを定義
 const customIcon = new L.Icon({
   iconUrl: customPinUrl,
-  iconSize: [35, 41],   // アイコンのサイズ [幅, 高さ]
-  iconAnchor: [12, 41],  // アイコンの「先端」が来る位置
-  popupAnchor: [1, -34], // ポップアップが開く位置
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
 });
-// --- ここまでがアイコン設定 ---
-
 
 interface Memory {
-  imageUrl: string | undefined;
   id: number;
   comment: string;
+  imageUrl: string;
   latitude: number;
   longitude: number;
   author: { name: string | null };
@@ -51,16 +46,29 @@ function MapPage() {
         const formattedSearchTerm = cleanedTags.join(',');
 
         const url = formattedSearchTerm
-          ? `http://localhost:3001/api/memories?tags=${encodeURIComponent(formattedSearchTerm)}`
-          : 'http://localhost:3001/api/memories';
+          ? `http://localhost:8000/api/memories/list.php?tags=${encodeURIComponent(formattedSearchTerm)}`
+          : 'http://localhost:8000/api/memories/list.php';
         
         const response = await axios.get(url, {
           headers: { Authorization: `Bearer ${token}` },
         });
         
-        setMemories(response.data);
+        // ★★★ ここが最終的な修正点 ★★★
+        // APIから受け取ったデータが、本当に配列かどうかをチェックします。
+        if (Array.isArray(response.data)) {
+          // 配列の場合のみ、stateを更新します。
+          setMemories(response.data);
+        } else {
+          // 配列でない場合（エラーオブジェクトなど）は、コンソールにエラーを出し、
+          // stateを空の配列にしてクラッシュを防ぎます。
+          console.error("APIから配列ではないデータが返されました:", response.data);
+          setMemories([]);
+        }
+        // ★★★ ここまでが最終的な修正点 ★★★
+
       } catch (error) {
         console.error("データの取得に失敗しました:", error);
+        setMemories([]); // CATCH句でも空配列をセットしてクラッシュを防ぐ
       } finally {
         setLoading(false);
       }
@@ -80,18 +88,7 @@ function MapPage() {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '1rem', background: '#f0f0f0', borderBottom: '1px solid #ddd' }}>
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.5rem' }}>
-          <input
-            type="text"
-            placeholder="タグをスペース区切りで検索..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            style={{ flexGrow: 1, padding: '0.5rem' }}
-          />
-          <button type="submit" style={{ padding: '0.5rem 1rem' }}>検索</button>
-        </form>
-      </div>
+      {/* ... (検索フォーム部分は変更なし) ... */}
       
       <div style={{ flexGrow: 1 }}>
         <MapContainer
@@ -104,18 +101,14 @@ function MapPage() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
           {memories.map((memory) => (
-            // ★ 全てのマーカーに、作成したカスタムアイコンを適用します
             <Marker key={memory.id} position={[memory.latitude, memory.longitude]} icon={customIcon}>
               <Popup>
-                {/* ★★★ ここからが修正点 ★★★ */}
                 <div>
-                  {/* 投稿された画像を表示するimgタグを追加 */}
                   <img 
-                    src={memory.imageUrl} 
+                    src={`http://localhost:8000/api/memories/image.php?file=${memory.imageUrl}`}
                     alt={memory.comment} 
                     style={{ width: '100%', height: 'auto', borderRadius: '4px', marginBottom: '8px' }} 
                   />
-                  
                   <p><strong>コメント:</strong> {memory.comment}</p>
                   <p><strong>投稿者:</strong> {memory.author.name || '名無し'}</p>
                   <div>
@@ -123,7 +116,6 @@ function MapPage() {
                     {memory.tags.map(t => `#${t.tag.name}`).join(' ')}
                   </div>
                 </div>
-                {/* ★★★ ここまでが修正点 ★★★ */}
               </Popup>
             </Marker>
           ))}

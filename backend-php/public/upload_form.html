@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>PHPアップロードテスト</title>
+    <style>
+        body { font-family: sans-serif; padding: 2em; }
+        div { margin-bottom: 1em; }
+        label { display: block; margin-bottom: 0.2em; }
+        input, textarea { width: 300px; padding: 0.5em; }
+    </style>
+</head>
+<body>
+    <h1>PHPバックエンド 最終テストフォーム</h1>
+    <p>このフォームから送信して、画像アップロードが成功するか確認します。</p>
+
+    <!-- [重要] action属性が、あなたのcreate.phpファイルを指していることを確認 -->
+    <form action="/api/memories/create.php" method="post" enctype="multipart/form-data">
+        
+        <div>
+            <label for="token">アクセストークン:</label>
+            <textarea id="token" name="token" rows="4" required placeholder="ログインして取得したトークンをここに貼り付け"></textarea>
+        </div>
+
+        <div>
+            <label for="image">画像ファイル:</label>
+            <input type="file" id="image" name="image" required>
+        </div>
+
+        <div>
+            <label for="comment">コメント:</label>
+            <input type="text" id="comment" name="comment" value="HTMLフォームからのテスト投稿" required>
+        </div>
+        
+        <div>
+            <label for="tags">タグ (JSON形式):</label>
+            <input type="text" id="tags" name="tags" value='["HTML", "最終テスト"]'>
+        </div>
+
+        <div>
+            <label for="latitude">緯度:</label>
+            <input type="text" id="latitude" name="latitude" value="35.68">
+        </div>
+
+        <div>
+            <label for="longitude">経度:</label>
+            <input type="text" id="longitude" name="longitude" value="139.76">
+        </div>
+
+        <button type="submit">投稿テストを実行</button>
+    </form>
+
+    <script>
+        // フォーム送信時にAuthorizationヘッダーを追加するためのスクリプト
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const token = formData.get('token');
+            formData.delete('token'); // FormDataからはトークンを削除
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('レスポンス: \n' + JSON.stringify(data, null, 2));
+                // 成功したら、保存された画像を確認しにいく
+                if (data.filename) {
+                    window.open('/api/memories/image.php?file=' + data.filename);
+                }
+            })
+            .catch(error => {
+                alert('エラーが発生しました: ' + error);
+            });
+        });
+    </script>
+</body>
+</html>

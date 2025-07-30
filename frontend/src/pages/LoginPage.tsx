@@ -19,10 +19,14 @@ function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:3001/api/users/login', {
+      // ★★★ URLをPHPサーバーの正しいパスに変更 ★★★
+      const response = await axios.post('http://localhost:8000/api/users/login.php', {
         email,
         password,
       });
+      // ★★★ ここまでが修正点 ★★★
+
+      // ログイン成功後はトークンを保存して地図ページへ
       localStorage.setItem('token', response.data.token);
       navigate('/map');
     } catch (error) {
